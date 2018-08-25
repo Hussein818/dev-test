@@ -117,7 +117,7 @@ modules.express && (() => {
   app.get('/text', (request, response) => response.send('<div>heello<span>what</span></div>'));
   app.get('/getJson', (request, response) => response.json('{a:1, b:2, c:3}'));
 
-  server.listen(5000);
+  server.listen(process.env.PORT || 5000);
 })();
 
 
@@ -152,5 +152,5 @@ modules.serviceworker && (() => {
   app.use(express.static(__dirname + '/public'));
   app.get('/', (request, response) => response.sendFile(__dirname + htmlMarkupPath));
 
-  server.listen(5000);
+  server.listen(process.env.PORT || 5000);
 })();
