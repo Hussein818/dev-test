@@ -2,14 +2,16 @@ const http = require('http'),
   fs = require('fs'),
   path = require('path'),
   events = require('events'),  // custom events
-  express = require('express');
+  express = require('express'),
+  fileUpload = require('express-fileupload');
 
 // Module tutorial:
 const modules = {
   readWrite: false,
   server: false,
   express: false,
-  serviceworker: true
+  serviceworker: false,
+  fileUploader: true
 };
 
 
@@ -88,6 +90,7 @@ modules.server && (() => {
   app.on('response', () => console.log("response"));
 })();
 
+
 /**
   * Express
   */
@@ -95,22 +98,24 @@ modules.express && (() => {
   const app = express();
   const server = require('http').createServer(app);
   const dir = './dist';
-  const htmlMarkup = (`<!DOCTYPE html>
-  <html>
-  <head>
-  <meta charset="UTF-8">
-  <title>Title of the document</title>
-  </head>
-  <body>
-  Content of the document......
-  </body>
-  </html>`);
   const htmlMarkupPath = '/dist/index.html';
 
   if (!fs.existsSync(dir)) {
+
+    const htmlMarkup = (`<!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>Title of the document</title>
+    </head>
+    <body>
+    Content of the document......
+    </body>
+    </html>`);
+
     fs.mkdirSync(dir);
     fs.writeFile(`.${htmlMarkupPath}`, htmlMarkup, (err) => console.log(err || 'saved!'));
-  };
+  }
 
   app.use(express.static(__dirname + '/public'));
   app.get('/', (request, response) => response.sendFile(__dirname + htmlMarkupPath));
@@ -129,28 +134,98 @@ modules.serviceworker && (() => {
   const app = express();
   const server = require('http').createServer(app);
   const dir = './dist';
-  const htmlMarkup = (`
-    <!DOCTYPE html>
-      <html>
-      <head>
-      <meta charset="UTF-8">
-      <title>Title of the document</title>
-      <script type="text/javascript" src="/script/script.js"></script>
-      <script type="text/javascript" src="/script/registering.serviceworker.js"></script>
-      </head>
-      <body>
-      Content of the document......
-      </body>
-      </html>`);
   const htmlMarkupPath = '/dist/index.html';
 
   if (!fs.existsSync(dir)) {
+
+    const htmlMarkup = (`
+      <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <title>Title of the document</title>
+        <script type="text/javascript" src="/script/script.js"></script>
+        <script type="text/javascript" src="/script/registering.serviceworker.js"></script>
+        </head>
+        <body>
+        Content of the document......
+        </body>
+        </html>`);
+
     fs.mkdirSync(dir);
     fs.writeFile(`.${htmlMarkupPath}`, htmlMarkup, (err) => console.log(err || 'saved!'));
-  };
+  }
 
   app.use(express.static(__dirname + '/public'));
   app.get('/', (request, response) => response.sendFile(__dirname + htmlMarkupPath));
+
+  server.listen(process.env.PORT || 5000);
+})();
+
+
+/**
+  * fileUploader
+  */
+modules.fileUploader && (() => {
+  debugger;
+
+  const app = express();
+  const server = require('http').createServer(app);
+  const busboy = require('connect-busboy');
+  const dir = './dist';
+  const htmlMarkupPath = '/dist/index.html';
+
+
+  if (!fs.existsSync(dir)) {
+
+    const htmlMarkup = (`
+      <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <title>Title of the document</title>
+        <script type="text/javascript" src="/script/script.js"></script>
+        </head>
+        <body>
+          <form ref='uploadForm'
+              id='uploadForm'
+              action='/upload'
+              method='post'
+              encType="multipart/form-data">
+                <input type="file" name="sampleFile" />
+                <input type='submit' value='Upload!' />
+          </form>
+        </body>
+        </html>`);
+
+    fs.mkdirSync(dir);
+    fs.writeFile(`.${htmlMarkupPath}`, htmlMarkup, (err) => console.log(err || 'saved!'));
+  }
+
+  app.use(busboy());
+  app.use(express.static(__dirname + '/public'));
+  app.get('/', (request, response) => response.sendFile(__dirname + htmlMarkupPath));
+  app.post('/upload', (req, res) => {
+
+    if(req.busboy) {
+        req
+          .busboy
+          .on("file", (fieldName, fileStream, fileName, encoding, mimeType) => {
+
+            // console.log(fieldName); // sampleFile
+            // console.log(fileName); // ABDR6016.jpg
+            // console.log(mimeType); // image/jpeg
+
+            const fullFileName = `./uploads/${fileName}`;
+            const fstream = fs.createWriteStream(fullFileName);
+
+            fileStream.pipe(fstream);
+            fstream.on('close', () => res.send('upload succeeded!'));
+          });
+
+        return req.pipe(req.busboy);
+    }
+  });
 
   server.listen(process.env.PORT || 5000);
 })();

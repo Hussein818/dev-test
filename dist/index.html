@@ -1,13 +1,19 @@
 
-    <!DOCTYPE html>
-      <html>
-      <head>
-      <meta charset="UTF-8">
-      <title>Title of the document</title>
-      <script type="text/javascript" src="/script/script.js"></script>
-      <script type="text/javascript" src="/script/registering.serviceworker.js"></script>
-      </head>
-      <body>
-      Content of the document......
-      </body>
-      </html>
+      <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <title>Title of the document</title>
+        <script type="text/javascript" src="/script/script.js"></script>
+        </head>
+        <body>
+          <form ref='uploadForm'
+              id='uploadForm'
+              action='/upload'
+              method='post'
+              encType="multipart/form-data">
+                <input type="file" name="sampleFile" />
+                <input type='submit' value='Upload!' />
+          </form>
+        </body>
+        </html>
