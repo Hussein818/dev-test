@@ -92,7 +92,6 @@ modules.server && (() => {
   * Express
   */
 modules.express && (() => {
-  debugger;
   const app = express();
   const server = require('http').createServer(app);
   const dir = './dist';
