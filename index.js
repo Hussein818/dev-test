@@ -11,7 +11,7 @@ const modules = {
   server: false,
   express: false,
   serviceworker: false,
-  fileUploader: true
+  fileUploader: false
 };
 
 
