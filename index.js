@@ -1,9 +1,19 @@
+// require
 const http = require('http'),
   fs = require('fs'),
   path = require('path'),
   events = require('events'),  // custom events
   express = require('express'),
-  fileUpload = require('express-fileupload');
+  fileUpload = require('express-fileupload'),
+  // Load the SDK and UUID
+  AWS = require('aws-sdk'),
+  uuidv4 = require('uuid/v4');
+
+
+// Global hibities:
+const awsID = '',
+  awsKey = '';
+
 
 // Module tutorial:
 const modules = {
@@ -11,7 +21,9 @@ const modules = {
   server: false,
   express: false,
   serviceworker: false,
-  fileUploader: false
+  fileUploader: false,
+  awsCreate: false,
+  awsUploadImg: true
 };
 
 
@@ -90,7 +102,6 @@ modules.server && (() => {
   app.on('response', () => console.log("response"));
 })();
 
-
 /**
   * Express
   */
@@ -124,7 +135,6 @@ modules.express && (() => {
 
   server.listen(process.env.PORT || 5000);
 })();
-
 
 /**
   * Serviceworker (w/ Express)
@@ -162,12 +172,10 @@ modules.serviceworker && (() => {
   server.listen(process.env.PORT || 5000);
 })();
 
-
 /**
   * fileUploader
   */
 modules.fileUploader && (() => {
-  debugger;
 
   const app = express();
   const server = require('http').createServer(app);
@@ -221,6 +229,119 @@ modules.fileUploader && (() => {
 
             fileStream.pipe(fstream);
             fstream.on('close', () => res.send('upload succeeded!'));
+          });
+
+        return req.pipe(req.busboy);
+    }
+  });
+
+  server.listen(process.env.PORT || 5000);
+})();
+
+
+modules.awsCreate && (()=> {
+  AWS.config.update({
+    accessKeyId: awsID,
+    secretAccessKey: awsKey,
+    timeout: 15000
+  });
+
+  // Create an S3 client
+  var s3 = new AWS.S3();
+
+  // Create a bucket and upload something into it
+  var bucketName = 'node-sdk-sample-test-1';
+  var keyName = 'hello_world.txt';
+
+  try {
+
+    s3.createBucket(
+      {
+        Bucket: bucketName
+      },
+
+      function() {
+
+        var params = {
+          Bucket: bucketName,
+          Key: keyName,
+          Body: 'Hello World! --updated' // will up the content of the file
+        };
+
+        s3.putObject(params, function(err, data) {
+          console.log(err ? err : "Successfully uploaded data to " + bucketName + "/" + keyName);
+        });
+
+      }
+    );
+
+  } catch(error) {
+    console.log(error);
+  }
+
+})();
+
+modules.awsUploadImg && (() => {
+  debugger;
+
+  const app = express();
+  const server = require('http').createServer(app);
+  const busboy = require('connect-busboy');
+  const dir = './dist';
+  const htmlMarkupPath = '/dist/index.html';
+
+
+  if (!fs.existsSync(dir)) {
+
+    const htmlMarkup = (`
+      <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="UTF-8">
+        <title>Title of the document</title>
+        <script type="text/javascript" src="/script/script.js"></script>
+        </head>
+        <body>
+          <form ref='uploadForm'
+              id='uploadForm'
+              action='/upload'
+              method='post'
+              encType="multipart/form-data">
+                <input type="file" name="sampleFile" />
+                <input type='submit' value='Upload!' />
+          </form>
+        </body>
+        </html>`);
+
+    fs.mkdirSync(dir);
+    fs.writeFile(`.${htmlMarkupPath}`, htmlMarkup, (err) => console.log(err || 'saved!'));
+  }
+
+  app.use(busboy());
+  app.use(express.static(__dirname + '/public'));
+  app.get('/', (request, response) => response.sendFile(__dirname + htmlMarkupPath));
+  app.post('/upload', (req, res) => {
+
+    AWS.config.update({
+      accessKeyId: awsID,
+      secretAccessKey: awsKey,
+      timeout: 15000
+    });
+
+    // Create an S3 client
+    var s3 = new AWS.S3();
+    var bucketName = 'hussein-image-up-loading';
+
+    if(req.busboy) {
+        req
+          .busboy
+          .on("file", (fieldName, fileStream, fileName, encoding, mimeType) => {
+
+            var params = {Bucket: bucketName, Key: 'key', Body: fileStream};
+
+            s3.upload(params, function(err, data) {
+              console.log(err, data);
+            });
           });
 
         return req.pipe(req.busboy);
